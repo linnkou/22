@@ -3,12 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استخراج النصوص والمعادلات من الصور</title>
-    <!-- KaTeX للمعادلات الرياضية -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.js"></script>
-    <!-- Cairo Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <title>استخراج النصوص من الصور</title>
     <style>
         body {
             font-family: 'Cairo', sans-serif;
@@ -37,21 +32,16 @@
             margin-bottom: 10px;
         }
         button {
-            background: #5D5CDE;
+            background: #007bff;
             color: white;
             border: none;
             padding: 10px 20px;
             cursor: pointer;
             border-radius: 5px;
             font-size: 16px;
-            margin-bottom: 10px;
         }
         button:hover {
-            background: #4a49b1;
-        }
-        button:disabled {
-            background: #9e9ee2;
-            cursor: not-allowed;
+            background: #0056b3;
         }
         #output {
             margin-top: 20px;
@@ -61,167 +51,47 @@
             border-radius: 5px;
             min-height: 50px;
             font-size: 18px;
-            white-space: pre-line;
-            overflow-x: auto;
-        }
-        #loading {
-            display: none;
-            margin: 20px auto;
-            text-align: center;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #5D5CDE;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* تصميم للمعادلات الرياضية */
-        .math-wrapper {
-            direction: ltr;
-            text-align: center;
-            overflow-x: auto;
-            padding: 10px 0;
-            margin: 10px 0;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>استخراج النصوص والمعادلات من الصور</h1>
+        <h1>استخراج النصوص من الصور</h1>
         <form id="uploadForm">
             <input type="file" id="imageInput" accept="image/*" required>
-            <button type="submit" id="submitBtn">رفع الصورة واستخراج النص</button>
+            <button type="submit">رفع الصورة واستخراج النص</button>
         </form>
-        
-        <div id="loading">
-            <div class="spinner"></div>
-            <p>جاري تحليل الصورة...</p>
-        </div>
-        
         <div id="output">سيظهر النص المستخرج هنا...</div>
     </div>
 
     <script>
-        // تعريف العناصر
-        const uploadForm = document.getElementById("uploadForm");
-        const imageInput = document.getElementById("imageInput");
-        const submitBtn = document.getElementById("submitBtn");
-        const output = document.getElementById("output");
-        const loading = document.getElementById("loading");
-
-        // تسجيل معالج استجابات Claude
-        window.Poe.registerHandler("text-extractor", (result) => {
-            try {
-                const message = result.responses[0];
-                
-                if (message.status === "error") {
-                    output.textContent = "حدث خطأ: " + (message.statusText || "فشل في معالجة الصورة");
-                    loading.style.display = "none";
-                    submitBtn.disabled = false;
-                } 
-                else if (message.status === "complete") {
-                    // معالجة النص المستخرج
-                    const content = message.content;
-                    
-                    // تحويل نص ماركداون البسيط
-                    let processedContent = content
-                        // تطبيق العناوين
-                        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-                        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-                        // تطبيق الخط العريض
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        // تطبيق الخط المائل
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                        // تطبيق الفقرات
-                        .replace(/\n\n/g, '</p><p>');
-                        
-                    // معالجة المعادلات الرياضية بين علامتي $$
-                    processedContent = processedContent.replace(/\$\$([\s\S]*?)\$\$/g, function(match, p1) {
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'math-wrapper';
-                        
-                        try {
-                            katex.render(p1.trim(), wrapper, {
-                                displayMode: true,
-                                throwOnError: false
-                            });
-                            return wrapper.outerHTML;
-                        } catch (err) {
-                            console.error("خطأ في عرض المعادلة:", err);
-                            return `<div class="math-wrapper">${match}</div>`;
-                        }
-                    });
-                    
-                    // تطبيق التغييرات
-                    output.innerHTML = `<p>${processedContent}</p>`;
-                    
-                    // إيقاف حالة التحميل
-                    loading.style.display = "none";
-                    submitBtn.disabled = false;
-                }
-            } catch (err) {
-                console.error("خطأ في المعالج:", err);
-                output.textContent = "حدث خطأ في معالجة الاستجابة";
-                loading.style.display = "none";
-                submitBtn.disabled = false;
-            }
-        });
-
-        // معالجة رفع الصورة
-        uploadForm.addEventListener("submit", async function (e) {
+        document.getElementById("uploadForm").addEventListener("submit", async function (e) {
             e.preventDefault();
             
-            if (imageInput.files.length === 0) {
+            const fileInput = document.getElementById("imageInput");
+            if (fileInput.files.length === 0) {
                 alert("يرجى اختيار صورة أولاً!");
                 return;
             }
 
-            // إظهار حالة التحميل
-            loading.style.display = "block";
-            output.textContent = "سيظهر النص المستخرج هنا...";
-            submitBtn.disabled = true;
-            
-            // توجيه لـ Claude
-            const prompt = `
-رجاءً استخرج كل النصوص من هذه الصورة بدقة.
-
-إذا وجدت معادلات رياضية، رجاءً قم بتمثيلها بصيغة LaTeX ووضعها بين علامتي $$ هكذا:
-
-$$معادلة LaTeX$$
-
-استخدم عناصر LaTeX المناسبة مثل:
-- الكسور: \\frac{بسط}{مقام}
-- الجذور: \\sqrt{محتوى}
-- المصفوفات: \\begin{matrix}...\\end{matrix}
-
-حافظ على ترتيب النص كما هو في الصورة الأصلية.
-أعطني النص فقط بدون أي تعليقات إضافية.
-`;
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
 
             try {
-                // إرسال الصورة إلى Claude
-                await window.Poe.sendUserMessage(
-                    "@Claude-3.7-Sonnet " + prompt,
-                    {
-                        attachments: [imageInput.files[0]],
-                        handler: "text-extractor",
-                        stream: false,
-                        openChat: false
-                    }
-                );
+                const response = await fetch("/upload", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.text) {
+                    document.getElementById("output").innerText = result.text;
+                } else {
+                    document.getElementById("output").innerText = "خطأ أثناء استخراج النص.";
+                }
             } catch (error) {
-                console.error("خطأ في إرسال الطلب:", error);
-                output.textContent = "حدث خطأ أثناء إرسال الصورة للمعالجة: " + (error.message || error);
-                loading.style.display = "none";
-                submitBtn.disabled = false;
+                document.getElementById("output").innerText = "حدث خطأ أثناء استخراج النص.";
             }
         });
     </script>
